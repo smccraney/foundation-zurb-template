@@ -4,7 +4,7 @@ import browser       from 'browser-sync';
 import gulp          from 'gulp';
 import panini        from 'panini';
 import rimraf        from 'rimraf';
-import sherpa        from 'style-sherpa';
+// import sherpa        from 'style-sherpa';
 import yaml          from 'js-yaml';
 import fs            from 'fs';
 import webpackStream from 'webpack-stream';
@@ -17,12 +17,22 @@ import imagemin      from 'gulp-imagemin';
 const sass = require('gulp-sass');
 const postcss = require('gulp-postcss');
 const uncss = require('postcss-uncss');
+const path = require('path');
+const merge = require('merge-stream');
 
 // Load all Gulp plugins into one variable
 const $ = plugins();
 
 // Check for --production flag
 const PRODUCTION = !!(yargs.argv.production);
+
+// Get folders per vertical
+function getFolders(dir) {
+  return fs.readdirSync(dir)
+    .filter(function(file) {
+      return fs.statSync(path.join(dir, file)).isDirectory();
+    });
+}
 
 // Load settings from settings.yml
 function loadConfig() {
@@ -38,7 +48,7 @@ console.log(UNCSS_OPTIONS);
 // Build the "dist" folder by running all of the below tasks
 // Sass must be run later so UnCSS can search for used classes in the others assets.
 gulp.task('build',
-  gulp.series(clean, gulp.parallel(pages, javascript, images, copy), sassBuild, styleGuide)
+  gulp.series(clean, gulp.parallel(pages, javascript), sassBuild)
 );
 
 // Build the site, run the server, and watch for file changes
@@ -78,14 +88,6 @@ function resetPages(done) {
   done();
 }
 
-// Generate a style guide from the Markdown content and HTML template in styleguide/
-function styleGuide(done) {
-  sherpa('src/styleguide/index.md', {
-    output: PATHS.dist + '/styleguide.html',
-    template: 'src/styleguide/template.html'
-  }, done);
-}
-
 // Compile Sass into CSS
 // In production, the CSS is compressed
 function sassBuild() {
@@ -97,7 +99,7 @@ function sassBuild() {
     // PRODUCTION && uncss(UNCSS_OPTIONS),
   ].filter(Boolean);
 
-  return gulp.src('src/assets/scss/app.scss')
+  return gulp.src('src/assets/scss/foundation_head.scss')
     .pipe($.sourcemaps.init())
     .pipe(sass({
       includePaths: PATHS.sass
@@ -129,10 +131,37 @@ let webpackConfig = {
   devtool: !PRODUCTION && 'source-map'
 }
 
+// Combine Foundation JavaScript into one file
+// In production, the file is minified
+// function foundation() {
+//   return gulp.src(PATHS.entries)
+//     .pipe(named())
+//     .pipe($.sourcemaps.init())
+//     .pipe(webpackStream(webpackConfig, webpack2))
+//     .pipe($.if(PRODUCTION, $.terser()
+//       .on('error', e => { console.log(e); })
+//     ))
+//     .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
+//     .pipe(gulp.dest(PATHS.dist + '/assets/js'));
+// }
+
 // Combine JavaScript into one file
 // In production, the file is minified
 function javascript() {
-  return gulp.src(PATHS.entries)
+  let folders = getFolders(PATHS.scriptsPath);
+
+  let verticals = folders.map(function(folder) {
+    return gulp.src(path.join(PATHS.scriptsPath, folder, '/**/*.js'))
+      .pipe(named())
+      .pipe($.sourcemaps.init())
+      .pipe($.if(PRODUCTION, $.terser()
+        .on('error', e => { console.log(e); })
+      ))
+      .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
+      .pipe(gulp.dest(PATHS.dist + '/assets/js/' + folder));    
+  });
+
+  let foundation = gulp.src(PATHS.entries)
     .pipe(named())
     .pipe($.sourcemaps.init())
     .pipe(webpackStream(webpackConfig, webpack2))
@@ -141,6 +170,8 @@ function javascript() {
     ))
     .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
     .pipe(gulp.dest(PATHS.dist + '/assets/js'));
+
+  return merge(verticals,foundation);
 }
 
 // Copy images to the "dist" folder
@@ -184,5 +215,4 @@ function watch() {
   gulp.watch('src/assets/scss/**/*.scss').on('all', sassBuild);
   gulp.watch('src/assets/js/**/*.js').on('all', gulp.series(javascript, browser.reload));
   gulp.watch('src/assets/img/**/*').on('all', gulp.series(images, browser.reload));
-  gulp.watch('src/styleguide/**').on('all', gulp.series(styleGuide, browser.reload));
 }
