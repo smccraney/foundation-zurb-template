@@ -99,7 +99,7 @@ function sassBuild() {
     // PRODUCTION && uncss(UNCSS_OPTIONS),
   ].filter(Boolean);
 
-  return gulp.src('src/assets/scss/foundation_head.scss')
+  return gulp.src('src/assets/scss/foundation.scss')
     .pipe($.sourcemaps.init())
     .pipe(sass({
       includePaths: PATHS.sass
@@ -154,6 +154,7 @@ function javascript() {
     return gulp.src(path.join(PATHS.scriptsPath, folder, '/**/*.js'))
       .pipe(named())
       .pipe($.sourcemaps.init())
+      .pipe(webpackStream(webpackConfig, webpack2))
       .pipe($.if(PRODUCTION, $.terser()
         .on('error', e => { console.log(e); })
       ))
