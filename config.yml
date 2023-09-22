@@ -1,6 +1,9 @@
 # Your project's server will run on localhost:xxxx at this port
 PORT: 8000
 
+# The list of vertical folders to create in the build process
+VERTICALS: ["arborgold", "servicemoster"]
+
 # UnCSS will use these settings
 UNCSS_OPTIONS:
   html:
@@ -25,5 +28,7 @@ PATHS:
   # Paths to JavaScript entry points for webpack to bundle modules
   entries:
     - "src/assets/js/foundation.js"
-  # Name of javascript files per vertical
+  # Path to javascript files per vertical
   scriptsPath: "src/assets/js/verticals"
+  # Path to css files per vertical
+  scssPath: "src/assets/scss/verticals"

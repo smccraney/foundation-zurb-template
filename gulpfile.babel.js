@@ -99,17 +99,24 @@ function sassBuild() {
     // PRODUCTION && uncss(UNCSS_OPTIONS),
   ].filter(Boolean);
 
-  return gulp.src('src/assets/scss/foundation.scss')
-    .pipe($.sourcemaps.init())
-    .pipe(sass({
-      includePaths: PATHS.sass
-    })
-    .on('error', $.sass.logError))
-    .pipe(postcss(postCssPlugins))
-    .pipe($.if(PRODUCTION, $.cleanCss({ compatibility: 'ie11' })))
-    .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
-    .pipe(gulp.dest(PATHS.dist + '/assets/css'))
-    .pipe(browser.reload({ stream: true }));
+  let folders = getFolders(PATHS.scssPath);
+
+  let stylesheets = folders.map(function(folder) {
+    let srcArray = ['src/assets/scss/foundation-custom.scss',path.join(PATHS.scssPath, folder, '/stylesheet.scss')];
+    return gulp.src(srcArray)
+      .pipe($.sourcemaps.init())
+      .pipe(sass({
+        includePaths: PATHS.sass
+      })
+      .on('error', $.sass.logError))
+      .pipe(postcss(postCssPlugins))
+      .pipe($.if(PRODUCTION, $.cleanCss({ compatibility: 'ie11' })))
+      .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
+      .pipe(gulp.dest(PATHS.dist + '/' + folder + '/css'))
+      .pipe(browser.reload({ stream: true }));
+  });
+
+  return merge(stylesheets);
 }
 
 let webpackConfig = {
@@ -131,20 +138,6 @@ let webpackConfig = {
   devtool: !PRODUCTION && 'source-map'
 }
 
-// Combine Foundation JavaScript into one file
-// In production, the file is minified
-// function foundation() {
-//   return gulp.src(PATHS.entries)
-//     .pipe(named())
-//     .pipe($.sourcemaps.init())
-//     .pipe(webpackStream(webpackConfig, webpack2))
-//     .pipe($.if(PRODUCTION, $.terser()
-//       .on('error', e => { console.log(e); })
-//     ))
-//     .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
-//     .pipe(gulp.dest(PATHS.dist + '/assets/js'));
-// }
-
 // Combine JavaScript into one file
 // In production, the file is minified
 function javascript() {
@@ -159,18 +152,20 @@ function javascript() {
         .on('error', e => { console.log(e); })
       ))
       .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
-      .pipe(gulp.dest(PATHS.dist + '/assets/js/' + folder));    
+      .pipe(gulp.dest(PATHS.dist + '/' + folder + '/js'));    
   });
 
-  let foundation = gulp.src(PATHS.entries)
-    .pipe(named())
-    .pipe($.sourcemaps.init())
-    .pipe(webpackStream(webpackConfig, webpack2))
-    .pipe($.if(PRODUCTION, $.terser()
-      .on('error', e => { console.log(e); })
-    ))
-    .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
-    .pipe(gulp.dest(PATHS.dist + '/assets/js'));
+  let foundation = folders.map(function(folder) {
+    return gulp.src(PATHS.entries)
+      .pipe(named())
+      .pipe($.sourcemaps.init())
+      .pipe(webpackStream(webpackConfig, webpack2))
+      .pipe($.if(PRODUCTION, $.terser()
+        .on('error', e => { console.log(e); })
+      ))
+      .pipe($.if(!PRODUCTION, $.sourcemaps.write()))
+      .pipe(gulp.dest(PATHS.dist + '/' + folder + '/js'));
+  });
 
   return merge(verticals,foundation);
 }
