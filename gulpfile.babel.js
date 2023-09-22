@@ -102,8 +102,7 @@ function sassBuild() {
   let folders = getFolders(PATHS.scssPath);
 
   let stylesheets = folders.map(function(folder) {
-    let srcArray = ['src/assets/scss/foundation-custom.scss',path.join(PATHS.scssPath, folder, '/stylesheet.scss')];
-    return gulp.src(srcArray)
+    return gulp.src(path.join(PATHS.scssPath, folder, '/stylesheet.scss'))
       .pipe($.sourcemaps.init())
       .pipe(sass({
         includePaths: PATHS.sass
@@ -117,6 +116,7 @@ function sassBuild() {
   });
 
   return merge(stylesheets);
+  // return stylesheets;
 }
 
 let webpackConfig = {
