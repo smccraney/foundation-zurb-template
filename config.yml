@@ -1,9 +1,6 @@
 # Your project's server will run on localhost:xxxx at this port
 PORT: 8000
 
-# The list of vertical folders to create in the build process
-VERTICALS: ["arborgold", "servicemoster"]
-
 # UnCSS will use these settings
 UNCSS_OPTIONS:
   html:
